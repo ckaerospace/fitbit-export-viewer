@@ -394,11 +394,12 @@ function drawHeatmap() {
   const col = [cssv('--hm0'), cssv('--hm1'), cssv('--hm2'), cssv('--hm3'), cssv('--hm4')];
   x.font = '10px system-ui'; x.fillStyle = cssv('--muted'); x.textBaseline = 'middle';
   ['Mon', 'Wed', 'Fri'].forEach((l, i) => x.fillText(l, 0, 18 + (i * 2 + .5) * cell));
-  let lastMonth = '';
+  let lastMonth = '', lastLabX = -999, lastLab = '';
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   for (const c of h.cells) {
     if (c.d > S.range.to) continue;
     const px = 30 + c.w * cell, py = 18 + c.r * cell;
-    if (c.r === 0 && c.d.slice(0, 7) !== lastMonth && c.d.slice(8) <= '07') { lastMonth = c.d.slice(0, 7); x.fillStyle = cssv('--muted'); x.fillText(c.d.slice(0, 7), px, 8); }
+    if (c.r === 0 && c.d.slice(0, 7) !== lastMonth && c.d.slice(8) <= '07') { lastMonth = c.d.slice(0, 7); const mn = c.d.slice(5, 7), lab = MON[+mn - 1] + (mn === '01' ? ' ' + c.d.slice(2, 4) : ''); if (px >= lastLabX + x.measureText(lastLab).width + 6) { x.fillStyle = cssv('--muted'); x.fillText(lab, px, 8); lastLabX = px; lastLab = lab; } }
     let lv = 0; if (c.v != null && c.v > 0) lv = c.v <= th[0] ? 1 : c.v <= th[1] ? 2 : c.v <= th[2] ? 3 : c.v <= th[3] ? 3 : 4; if (c.v != null && c.v > th[3]) lv = 4; else if (c.v != null && c.v > 0 && lv === 0) lv = 1;
     x.fillStyle = col[lv]; x.fillRect(px, py, cell - gap, cell - gap);
   }
