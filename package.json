@@ -1,0 +1,19 @@
+{
+  "name": "fitbit-export-viewer",
+  "version": "1.0.0",
+  "description": "Client-side viewer for Google Takeout Fitbit / Google Health exports. Nothing leaves the browser.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8124 --directory public",
+    "gen": "python3 tools/gen_fixtures.py",
+    "test:unit": "node tests/unit.mjs",
+    "test": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "chart.js": "^4.4.9",
+    "fflate": "^0.8.2"
+  }
+}

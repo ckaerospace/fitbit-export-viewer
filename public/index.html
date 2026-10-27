@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Fitbit and Google Health export viewer</title>
+<meta name="description" content="Open your Google Takeout Fitbit export in the browser and explore sleep, heart rate, activity and body data. Everything runs on your device. Nothing is uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f8cff'/%3E%3Cpath d='M4 17h6l3-8 5 14 3-6h7' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-stage="pick">
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true">&#9829;</span><h1>Export viewer</h1></div>
+  <div class="top-actions">
+    <button id="btn-settings" class="ghost" aria-expanded="false" aria-controls="settings">Settings</button>
+    <button id="btn-theme" class="ghost" aria-label="Toggle dark and light theme">Theme</button>
+  </div>
+</header>
+<section id="settings" class="settings" hidden>
+  <label>Time zone for heart-rate data
+    <select id="set-tz"></select>
+  </label>
+  <label>Weight shown in
+    <select id="set-wunit"><option value="kg">kg</option><option value="lb">lb</option></select>
+  </label>
+  <label>Weight in the export is
+    <select id="set-wsrc"><option value="auto">detect automatically</option><option value="lb">pounds</option><option value="kg">kilograms</option><option value="g">grams</option></select>
+  </label>
+  <label>Distance shown in
+    <select id="set-dunit"><option value="km">km</option><option value="mi">miles</option></select>
+  </label>
+  <p class="hint" id="set-hint">The old Fitbit heart-rate files store UTC times. Pick your time zone so days split at your local midnight. Choose "No conversion" if the times in your files are already local.</p>
+</section>
+
+<main>
+<!-- Stage 1: pick -->
+<section id="stage-pick" class="stage">
+  <div class="hero">
+    <h2>Look at your Fitbit export</h2>
+    <p>Choose the ZIP from Google Takeout. It is read inside this page, on this device. <strong>Nothing is uploaded, there is no server, and nothing is stored.</strong> After this page has loaded you can switch off the network and it keeps working.</p>
+    <label id="drop" class="drop" for="file-input" tabindex="0">
+      <span class="drop-big">Choose export ZIP</span>
+      <span class="drop-small">or drop it here. Large files (hundreds of MB) are fine: the ZIP is read in small pieces.</span>
+      <input id="file-input" type="file" accept=".zip,application/zip,application/x-zip-compressed" multiple>
+    </label>
+    <p class="hint">Takeout split into several ZIPs? Select them all at once.</p>
+    <details class="how"><summary>How do I get the ZIP?</summary>
+      <ol>
+        <li>Open <strong>takeout.google.com</strong>, press "Deselect all", then tick <strong>Fitbit</strong> (newer accounts: <strong>Google Health</strong> or <strong>Fitbit and Google Health</strong>).</li>
+        <li>Choose "Export once", file type .zip, and create the export.</li>
+        <li>Download it from the e-mail link, then pick it here.</li>
+      </ol>
+      <p>Layouts with JSON files (Global Export Data) and the newer CSV layout (Google Data) are recognised. Files that are not recognised are listed so nothing disappears silently.</p>
+    </details>
+    <div class="or-import">
+      <span>Already analysed once?</span>
+      <label class="btn ghost" for="summary-input">Load a saved summary (.json)</label>
+      <input id="summary-input" type="file" accept=".json,application/json" hidden>
+    </div>
+  </div>
+</section>
+
+<!-- Stage 2: options -->
+<section id="stage-options" class="stage" hidden>
+  <div class="panel">
+    <h2>Ready to read</h2>
+    <p id="opt-files" class="files"></p>
+    <h3>Data to include</h3>
+    <p class="hint">Unticked groups are skipped without being decompressed. That makes reading faster and uses less memory.</p>
+    <div id="opt-groups" class="groups"></div>
+    <div class="row">
+      <button id="btn-start" class="primary">Read the export</button>
+      <button id="btn-back" class="ghost">Choose another file</button>
+    </div>
+  </div>
+</section>
+
+<!-- Stage 3: progress -->
+<section id="stage-progress" class="stage" hidden>
+  <div class="panel" role="status" aria-live="polite">
+    <h2>Reading your export</h2>
+    <div class="bar" aria-hidden="true"><div id="pbar"></div></div>
+    <p><span id="ppct" data-testid="progress-pct">0%</span> <span class="muted" id="pcount"></span></p>
+    <p class="muted mono" id="pfile" data-testid="progress-file">starting...</p>
+    <p class="muted" id="ptime"></p>
+    <button id="btn-cancel" class="ghost">Cancel</button>
+    <p class="hint">Everything happens on this device. You can keep scrolling; the page stays responsive.</p>
+  </div>
+</section>
+
+<!-- Stage 4: error -->
+<section id="stage-error" class="stage" hidden>
+  <div class="panel err" role="alert">
+    <h2 id="err-title">Something went wrong</h2>
+    <p id="err-msg"></p>
+    <button id="btn-err-back" class="primary">Back</button>
+  </div>
+</section>
+
+<!-- Stage 5: results -->
+<section id="stage-results" class="stage" hidden>
+  <div class="toolbar">
+    <div class="range" role="group" aria-label="Date range">
+      <button data-range="30">30d</button><button data-range="90">90d</button><button data-range="180">6m</button><button data-range="365">1y</button><button data-range="all">All</button>
+    </div>
+    <div class="custom">
+      <input id="r-from" type="date" aria-label="From date"><span>to</span><input id="r-to" type="date" aria-label="To date">
+    </div>
+    <button id="btn-new" class="ghost">New file</button>
+  </div>
+  <p id="range-note" class="muted small"></p>
+  <nav id="tabs" class="tabs" role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="sleep">Sleep</button>
+    <button role="tab" data-tab="heart">Heart</button>
+    <button role="tab" data-tab="activity">Activity</button>
+    <button role="tab" data-tab="body">Body</button>
+    <button role="tab" data-tab="patterns">Patterns</button>
+    <button role="tab" data-tab="data">Data</button>
+  </nav>
+  <div id="views">
+    <div class="view" id="view-overview"></div>
+    <div class="view" id="view-sleep" hidden></div>
+    <div class="view" id="view-heart" hidden></div>
+    <div class="view" id="view-activity" hidden></div>
+    <div class="view" id="view-body" hidden></div>
+    <div class="view" id="view-patterns" hidden></div>
+    <div class="view" id="view-data" hidden></div>
+  </div>
+</section>
+</main>
+<footer class="foot">
+  <p>Runs entirely in your browser. No analytics, no cookies, no external requests (this page cannot make any: see its Content-Security-Policy). Charts are descriptive summaries of your own numbers and not medical advice.</p>
+</footer>
+<script src="js/vendor/chart.umd.min.js"></script>
+<script src="js/parse-core.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
