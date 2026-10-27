@@ -71,6 +71,7 @@ async function newPage(browser, d, base) {
   const page = await context.newPage(); const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('response', r => { if (r.status() >= 400) errors.push('http ' + r.status() + ' ' + r.url()); });
   page.foreign = foreign; page.errors = errors; page.ctx = context;
   await page.goto(base); await page.waitForSelector('#file-input', { state: 'attached' });
   return page;

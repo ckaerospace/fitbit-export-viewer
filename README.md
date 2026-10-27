@@ -71,6 +71,8 @@ Measured on the 150 MB ZIP (1,950 days, 2,880 entries, 31.9M HR samples), this L
 | iPhone 14 viewport, WebKit | 41 s | 628 MB (baseline of an idle WebKit page here was already ~640 MB across processes) | 40 ms |
 | Pixel 7 viewport, Chromium, 4x CPU throttle on the main thread | 25 s | 251 MB | 19 ms |
 
+Re-run against the deployed site (https://fitbit-export-viewer.onrender.com/) on 2026-10-27: 285/285 checks on the three profiles for the small fixtures, and 77/77 for the 150 MB ZIP (26 s / 43 s / 27 s, same memory as above, zero requests to other origins).
+
 Limitations of that measurement: emulation changes viewport and user agent, not memory limits or CPU speed of a real phone, and the CDP CPU throttle does not slow the worker. Expect a real phone to take several times longer on a 150 MB export; the progress bar and Cancel button keep working. Real iOS Safari was not tested.
 
 ## Known limitations
